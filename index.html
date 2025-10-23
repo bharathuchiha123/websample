@@ -1,0 +1,383 @@
+<!--
+AI-Powered Code Mentor — Single-file HTML
+- Paste this into a file named index.html and open in a browser.
+- This is a frontend-only demo. Replace `analyzeCode()` implementation with your server/AI API call.
+- Responsive, colorful Material-like UI with animations and hover effects.
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI-Powered Code Mentor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f6f9ff;
+      --card:#ffffff;
+      --accent1: #6C63FF; /* purple */
+      --accent2: #00B6A0; /* teal/green */
+      --accent3: #4FB3FF; /* light blue */
+      --muted:#718096;
+      --glass: rgba(255,255,255,0.6);
+      --radius: 14px;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      min-height:100%;
+      background: linear-gradient(180deg,var(--bg), #eef6ff 60%);
+      color:#102a43;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      padding:28px;
+      gap:18px;
+    }
+
+    /* Header */
+    header{
+      width:100%;
+      max-width:1100px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .brand{
+      display:flex;align-items:center;gap:12px
+    }
+    .logo{
+      width:56px;height:56px;border-radius:12px;
+      background:linear-gradient(135deg,var(--accent3),var(--accent1));
+      display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:20px;
+      box-shadow: 0 8px 20px rgba(99,102,241,0.18);
+      transform:translateZ(0);
+    }
+    .title{
+      display:flex;flex-direction:column;line-height:1
+    }
+    .title .h{font-weight:700;font-size:16px}
+    .title .s{font-size:12px;color:var(--muted)}
+
+    nav{display:flex;gap:12px;align-items:center}
+    nav a{padding:8px 12px;border-radius:10px;text-decoration:none;color:var(--muted);font-weight:600}
+    nav a:hover{background:rgba(108,99,255,0.08);color:var(--accent1)}
+
+    /* Main card container */
+    .container{
+      width:100%;max-width:1100px;background:linear-gradient(180deg, rgba(255,255,255,0.8), var(--card));
+      border-radius:var(--radius);padding:18px;box-shadow:0 12px 40px rgba(16,42,67,0.08);
+      display:grid;grid-template-columns:1fr 420px;gap:18px;align-items:start;
+    }
+
+    /* Mobile layout */
+    @media(max-width:980px){
+      .container{grid-template-columns:1fr}
+      nav{display:none}
+    }
+
+    /* Code editor area */
+    .editor{
+      display:flex;flex-direction:column;gap:12px
+    }
+    .editor .label{display:flex;justify-content:space-between;align-items:center}
+    .chips{display:flex;gap:8px}
+    .chip{background:linear-gradient(90deg,rgba(79,179,255,0.12),rgba(108,99,255,0.06));padding:6px 10px;border-radius:10px;font-weight:600;font-size:12px;color:var(--accent1)}
+
+    textarea#code{
+      width:100%;height:420px;border-radius:12px;border:1px solid rgba(15,23,42,0.06);padding:14px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', monospace;font-size:13px;resize:vertical;outline:none
+    }
+
+    .controls{display:flex;gap:12px;align-items:center}
+    .btn{
+      background:linear-gradient(90deg,var(--accent1),var(--accent3));color:white;padding:10px 14px;border-radius:12px;border:0;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(99,102,241,0.16);transition:transform .18s ease, box-shadow .18s ease;
+    }
+    .btn:hover{transform:translateY(-3px);box-shadow:0 18px 40px rgba(79,179,255,0.12)}
+
+    .btn.secondary{background:transparent;color:var(--accent1);border:1px solid rgba(108,99,255,0.12);font-weight:700}
+
+    .hint{font-size:13px;color:var(--muted)}
+
+    /* Right column - AI output */
+    .ai-panel{
+      background:linear-gradient(180deg, rgba(245,248,255,0.8), #ffffff);
+      border-radius:12px;padding:14px;height:100%;display:flex;flex-direction:column;gap:10px;border:1px solid rgba(15,23,42,0.04);
+    }
+    .ai-header{display:flex;align-items:center;justify-content:space-between}
+    .ai-title{font-weight:700}
+    .ai-output{overflow:auto;padding:6px;background:linear-gradient(180deg,rgba(108,99,255,0.03),transparent);border-radius:10px;height:380px}
+
+    .msg{padding:10px;border-radius:10px;margin:10px;max-width:100%;box-shadow:0 6px 18px rgba(12,20,36,0.04)}
+    .msg.user{background:linear-gradient(90deg, rgba(79,179,255,0.18), rgba(79,179,255,0.06));align-self:flex-end}
+    .msg.ai{background:linear-gradient(90deg, rgba(108,99,255,0.12), rgba(79,179,255,0.03));}
+
+    .error-block{border-left:4px solid rgba(255,96,92,0.96);padding:10px;background:rgba(255,96,92,0.04);border-radius:8px;margin:10px}
+    .ok-block{border-left:4px solid rgba(34,197,94,0.96);padding:10px;background:rgba(34,197,94,0.04);border-radius:8px;margin:10px}
+
+    .small{font-size:12px;color:var(--muted)}
+
+    /* Footer */
+    footer{width:100%;max-width:1100px;display:flex;justify-content:space-between;align-items:center;padding:12px 6px;color:var(--muted);font-size:13px}
+
+    /* small touches */
+    .action-row{display:flex;gap:8px;align-items:center}
+    .icon-btn{padding:8px;border-radius:10px;border:0;background:transparent;cursor:pointer}
+
+    /* animations */
+    @keyframes floaty{0%{transform:translateY(0)}50%{transform:translateY(-6px)}100%{transform:translateY(0)}}
+    .logo{animation:floaty 4s ease-in-out infinite}
+
+    /* responsiveness for editor height on mobile */
+    @media(max-width:600px){textarea#code{height:280px}.ai-output{height:260px}}
+
+    /* tiny scrollbar styling */
+    .ai-output::-webkit-scrollbar{width:10px}
+    .ai-output::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--accent1),var(--accent3));border-radius:10px}
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">AI</div>
+      <div class="title">
+        <div class="h">AI-Powered Code Mentor</div>
+        <div class="s">Your virtual coding tutor</div>
+      </div>
+    </div>
+
+    <nav>
+      <a href="#">Home</a>
+      <a href="#features">Features</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="container" role="main">
+    <section class="editor" aria-labelledby="editor-title">
+      <div class="label">
+        <div>
+          <strong id="editor-title">Paste your code</strong>
+          <div class="small">Supports multiple languages (JS, Python, Java, C/C++). AI will try to detect language.</div>
+        </div>
+        <div class="chips">
+          <div class="chip">Live analysis</div>
+          <div class="chip">Step-by-step</div>
+        </div>
+      </div>
+
+      <textarea id="code" placeholder="Paste your code here... (example: JavaScript or Python)"></textarea>
+
+      <div class="controls">
+        <button class="btn" id="analyzeBtn">Analyze Code</button>
+        <button class="btn secondary" id="clearBtn">Clear</button>
+        <div style="flex:1"></div>
+        <div class="hint">Tip: include the language in a comment at top for more accurate results.</div>
+      </div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="icon-btn" id="sampleJS">Sample JS</button>
+        <button class="icon-btn" id="samplePy">Sample Python</button>
+        <button class="icon-btn" id="downloadBtn">Download</button>
+      </div>
+    </section>
+
+    <aside class="ai-panel" aria-labelledby="ai-title">
+      <div class="ai-header">
+        <div>
+          <div id="ai-title" class="ai-title">AI Tutor</div>
+          <div class="small">Explanation · Fix suggestions · Best practices</div>
+        </div>
+        <div class="action-row">
+          <button class="icon-btn" id="copyFixBtn" title="Copy suggested fix">📋</button>
+          <button class="icon-btn" id="refreshBtn" title="Re-run">🔁</button>
+        </div>
+      </div>
+
+      <div class="ai-output" id="aiOutput" role="log" aria-live="polite">
+        <div class="msg ai small">Paste code and click <strong>Analyze Code</strong> to get started.</div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="userNote" placeholder="Add a note for the AI (optional)" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(15,23,42,0.06);outline:none">
+        <button class="btn secondary" id="runChat">Send</button>
+      </div>
+    </aside>
+
+  </main>
+
+  <footer>
+    <div>© <strong>AI-Powered Code Mentor</strong> — Built for students</div>
+    <div class="small">Made with ❤️ • <a href="#contact">Contact</a> • <a href="#">Twitter</a></div>
+  </footer>
+
+  <script>
+    // Demo client-side logic. Replace analyzeCode() with a server/API call to your LLM.
+
+    const codeEl = document.getElementById('code');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const aiOutput = document.getElementById('aiOutput');
+    const clearBtn = document.getElementById('clearBtn');
+    const copyFixBtn = document.getElementById('copyFixBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const runChat = document.getElementById('runChat');
+    const userNote = document.getElementById('userNote');
+
+    // Sample code for convenience
+    const sampleJS = `// javascript sample with a bug\nfunction add(a, b) {\n  return a + b; // works\n}\n\nconsole.log(Add(2, 3)); // NameError: Add is not defined - should be add`;
+    const samplePy = `# python sample with bug\ndef greet(name):\n    print('Hello, ' + Name) # Name variable wrong\n\ngreet('Asha')`;
+
+    document.getElementById('sampleJS').addEventListener('click', ()=> codeEl.value = sampleJS);
+    document.getElementById('samplePy').addEventListener('click', ()=> codeEl.value = samplePy);
+    clearBtn.addEventListener('click', ()=>{ codeEl.value=''; appendAIMessage('Cleared code.'); });
+    refreshBtn.addEventListener('click', ()=> analyzeBtn.click());
+
+    copyFixBtn.addEventListener('click', ()=>{
+      const fixEl = document.querySelector('.fix-suggestion');
+      if(fixEl){navigator.clipboard.writeText(fixEl.innerText).then(()=>{appendAIMessage('✅ Suggested fix copied to clipboard.');});}
+      else{appendAIMessage('No suggested fix found to copy.');}
+    });
+
+    runChat.addEventListener('click', ()=>{
+      const note = userNote.value.trim();
+      if(!note) { appendAIMessage('Type a short note to send to the AI (or paste code and click Analyze Code).'); return; }
+      appendUserMessage(note);
+      // In a real app, send note + last analysis to LLM.
+      setTimeout(()=> appendAIMessage('Thanks — noted. The AI will consider this context on the next analysis.'), 600);
+    });
+
+    analyzeBtn.addEventListener('click', () => analyzeCode());
+
+    function appendAIMessage(html){
+      const d = document.createElement('div'); d.className='msg ai'; d.innerHTML = html; aiOutput.appendChild(d); aiOutput.scrollTop = aiOutput.scrollHeight;
+    }
+    function appendUserMessage(text){
+      const d = document.createElement('div'); d.className='msg user small'; d.textContent = text; aiOutput.appendChild(d); aiOutput.scrollTop = aiOutput.scrollHeight;
+    }
+
+    function detectLanguage(code){
+      const first = code.trim().split('\n')[0].toLowerCase();
+      if(first.includes('def ') || first.startsWith('#') || code.includes('print(')) return 'python';
+      if(code.includes('console.log') || code.includes('function') || code.includes('=>')) return 'javascript';
+      if(code.includes('#include') || code.includes('std::')) return 'cpp';
+      if(code.includes('public static void main') || code.includes('System.out.println')) return 'java';
+      return 'unknown';
+    }
+
+    // Naive client-side analysis for demo purposes (syntax heuristics + friendly explanations).
+    // For production, send code to an LLM or language-specific parser for accurate diagnostics.
+    function analyzeCode(){
+      const code = codeEl.value.trim();
+      if(!code){ appendAIMessage('⚠️ No code provided. Paste code in the left box and click Analyze Code.'); return; }
+      appendUserMessage('Analyze request');
+
+      // small loading hint
+      appendAIMessage('<div class="small">🔎 Analyzing code...</div>');
+
+      setTimeout(()=>{
+        // remove the loading message
+        const loading = aiOutput.querySelector('.small');
+        if(loading) loading.remove();
+
+        const lang = detectLanguage(code);
+        appendAIMessage(`<div class="small">Detected language: <strong>${lang}</strong></div>`);
+
+        // Very basic heuristics:
+        const issues = [];
+        if(lang==='javascript'){
+          if(/console\.log\([^)]*\);?\s*console\.log/i.test(code)){
+            // nothing
+          }
+          if(/\b[A-Z]\w*\(/.test(code) && /console\.log\(Add\(/.test(code)){
+            // from sampleJS
+          }
+          // name case mismatch heuristic
+          const m = code.match(/console\.log\(([^)]+)\)/);
+          if(m){
+            const called = m[1];
+            // basic check for capitalized function call vs defined lower-case function
+            if(/Add\(/.test(code) && /function add/.test(code)){
+              issues.push({type:'NameError', problem:'Function name used with wrong capitalization (Add vs add).', fix: code.replace('Add(', 'add(')});
+            }
+          }
+
+          // missing semicolon heuristic
+          if(/\n\s*console\.log\([^;]+\)\n/.test('\n'+code+'\n')){
+            issues.push({type:'Syntax', problem:'Possible missing semicolon or newline near console.log', fix:null});
+          }
+        }
+
+        if(lang==='python'){
+          if(/NameError|NameError/i.test(code)){
+            // skip
+          }
+          // detect use of undefined variable 'Name' vs 'name'
+          if(/print\([^)]*Name[^)]*\)/.test(code) && /def\s+\w+\(name\)/.test(code)){
+            const fixed = code.replace(/Name/g,'name');
+            issues.push({type:'NameError', problem:"You're using 'Name' (capital N) instead of the parameter 'name'. Python is case-sensitive.", fix: fixed});
+          }
+
+          // indentation heuristic
+          if(/def\s+\w+\([^)]+\):\n\s*print\(/.test(code)===false && /def\s+\w+\([^)]+\):/.test(code)){
+            // maybe missing indent
+            issues.push({type:'Indentation', problem:'Could be an indentation problem after a function definition. Make sure the inside lines are indented with 4 spaces.', fix:null});
+          }
+        }
+
+        // Generic check: unmatched brackets (very simple)
+        const stack = [];
+        const pairs = {'(':')','[':']','{':'}'};
+        for(let ch of code){
+          if('([{'.includes(ch)) stack.push(ch);
+          if(')]}'.includes(ch)){
+            const last = stack.pop();
+            if(!last || pairs[last] !== ch){ stack.push('MISMATCH'); break; }
+          }
+        }
+        if(stack.length>0){ issues.push({type:'Brackets', problem:'Possible unmatched parentheses/brackets.', fix:null}); }
+
+        if(issues.length===0){
+          appendAIMessage('<div class="ok-block"><strong>No obvious errors found</strong><div class="small">The AI did not detect syntax or immediate runtime issues with simple heuristics. For deeper analysis, connect the editor to the AI backend or run language-specific linters.</div></div>');
+          return;
+        }
+
+        // Render issues
+        issues.forEach((it, idx)=>{
+          const html = [`<div class="error-block"><strong>Issue ${idx+1}: ${it.type}</strong>`,`<div class="small" style="margin-top:8px">${it.problem}</div>`];
+          if(it.fix){
+            html.push(`<details style="margin-top:8px;padding:8px;border-radius:8px;background:rgba(15,23,42,0.02)"><summary style="font-weight:700">Suggested fix</summary><pre class="small fix-suggestion" style="white-space:pre-wrap;margin-top:8px">${escapeHtml(it.fix)}</pre><div class="small" style="margin-top:8px">You can copy the suggested fix using the clipboard icon.</div></details>`);
+          } else {
+            html.push(`<div class="small" style="margin-top:8px">Suggested fix: <em>needs deeper AI analysis</em></div>`);
+          }
+          appendAIMessage(html.join('\n'));
+        });
+
+      }, 700);
+    }
+
+    function escapeHtml(s){
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // Download code as file
+    document.getElementById('downloadBtn').addEventListener('click', ()=>{
+      const blob = new Blob([codeEl.value], {type:'text/plain'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'code.txt'; a.click();
+    });
+
+    // Accessibility: keyboard shortcut (Ctrl+Enter) to analyze
+    codeEl.addEventListener('keydown', (e)=>{ if((e.ctrlKey || e.metaKey) && e.key==='Enter'){ analyzeBtn.click(); }});
+
+  </script>
+</body>
+</html>
